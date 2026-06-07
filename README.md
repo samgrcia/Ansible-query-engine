@@ -1,4 +1,4 @@
-# ansible-query
+# Ansible query engine
 
 Query and modify Ansible inventories using a pseudo-SQL language — usable as a **CLI tool** or as a **Python library**.
 
