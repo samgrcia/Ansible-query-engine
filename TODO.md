@@ -95,9 +95,9 @@ Ordre d'implémentation par phase. Chaque phase dépend des précédentes.
 
 ## Phase 8 — Finitions
 
-- [ ] `ansible_query/__init__.py` — export public : `InventoryQuery`
-- [ ] Vérification compatibilité Python 3.12+
-- [ ] README.md : installation, usage CLI et bibliothèque
+- [x] `ansible_query/__init__.py` — export public : `InventoryQuery`
+- [x] Vérification compatibilité Python 3.12+
+- [x] README.md : installation, usage CLI et bibliothèque
 
 ---
 

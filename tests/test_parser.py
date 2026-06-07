@@ -9,9 +9,8 @@ from ansible_query.parser.ast import (
     SetQuery,
     UnsetQuery,
 )
-from ansible_query.parser.lexer import LexError, tokenize, TokenType
+from ansible_query.parser.lexer import LexError, TokenType, tokenize
 from ansible_query.parser.parser import ParseError, parse
-
 
 # ── lexer ─────────────────────────────────────────────────────────────────────
 

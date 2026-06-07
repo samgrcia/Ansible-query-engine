@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from ansible_query.inventory.bulk import BulkBuffer
 
 

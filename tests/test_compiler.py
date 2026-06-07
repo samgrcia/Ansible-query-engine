@@ -9,7 +9,6 @@ from ansible_query.inventory.resolver import Resolver
 from ansible_query.inventory.state import InventoryState
 from ansible_query.inventory.store import Store
 
-
 # ── deep_merge ────────────────────────────────────────────────────────────────
 
 def test_deep_merge_scalar_override() -> None:

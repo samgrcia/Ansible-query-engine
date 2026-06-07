@@ -1,9 +1,9 @@
 import copy
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from ansible_vault import Vault
+from ansible_vault import Vault  # type: ignore[import-untyped]
 from ruamel.yaml import YAML
 
 
@@ -117,7 +117,7 @@ class Store:
 
     def _load_vault_cached(self, path: Path) -> dict[str, Any]:
         if path in self._cache:
-            return self._cache[path]
+            return cast(dict[str, Any], self._cache[path])
         if not path.exists():
             return {}
         vault = self._get_vault()

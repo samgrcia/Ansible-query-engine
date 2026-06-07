@@ -5,7 +5,6 @@ from ansible_vault import Vault
 
 from ansible_query.inventory.store import Store
 
-
 # ── plain YAML loading ────────────────────────────────────────────────────────
 
 def test_load_hostvars_yaml(

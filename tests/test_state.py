@@ -1,4 +1,5 @@
 import pytest
+
 from ansible_query.inventory.state import InventoryState
 
 

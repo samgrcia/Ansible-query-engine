@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ansible_query.inventory.resolver import Resolver, ResolvedInventory, expand_range
-
+from ansible_query.inventory.resolver import ResolvedInventory, Resolver, expand_range
 
 # ── expand_range ──────────────────────────────────────────────────────────────
 
