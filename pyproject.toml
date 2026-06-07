@@ -5,7 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ansible-query"
 version = "0.1.0"
+description = "Pseudo-SQL interface to query and modify Ansible inventories"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Samuel Garcia", email = "samg15wr@gmail.com" }]
 requires-python = ">=3.12"
+keywords = ["ansible", "inventory", "query", "vault"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
 dependencies = [
     "ruamel.yaml>=0.18",
     "ansible-vault>=2.1",
@@ -18,6 +32,10 @@ dev = [
     "mypy>=1.8",
     "ruff>=0.3",
 ]
+
+[project.urls]
+Repository = "https://github.com/samgrcia/Ansible-query-engine"
+"Bug Tracker" = "https://github.com/samgrcia/Ansible-query-engine/issues"
 
 [project.scripts]
 ansible-query = "ansible_query.cli:cli"
