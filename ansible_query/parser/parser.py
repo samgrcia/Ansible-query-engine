@@ -6,6 +6,8 @@ from ansible_query.parser.ast import (
     RemoveHostQuery,
     SelectQuery,
     SetQuery,
+    ShowGroupsQuery,
+    ShowHostsQuery,
     UnsetQuery,
 )
 from ansible_query.parser.lexer import Token, TokenType, tokenize
@@ -65,6 +67,8 @@ class _Parser:
             return self._parse_remove()
         if t.type == TokenType.DROP:
             return self._parse_drop()
+        if t.type == TokenType.SHOW:
+            return self._parse_show()
         raise ParseError(f"Unknown command {t.value!r} at position {t.pos}")
 
     # ── SELECT ────────────────────────────────────────────────────────────────
@@ -177,6 +181,35 @@ class _Parser:
 
         self._expect(TokenType.EOF)
         return DropHostQuery(host=host, keep_vars=keep_vars)
+
+    # ── SHOW HOSTS / SHOW GROUPS ──────────────────────────────────────────────
+
+    def _parse_show(self) -> ShowHostsQuery | ShowGroupsQuery:
+        self._expect(TokenType.SHOW)
+        if self._check(TokenType.HOSTS):
+            self._advance()
+            pattern = "*"
+            if self._check(TokenType.WHERE):
+                self._advance()
+                condition = self._parse_condition()
+                if condition.kind != "host":
+                    raise ParseError("SHOW HOSTS requires WHERE host = \"...\"")
+                pattern = condition.pattern
+            self._expect(TokenType.EOF)
+            return ShowHostsQuery(pattern=pattern)
+        if self._check(TokenType.GROUPS):
+            self._advance()
+            pattern = "*"
+            if self._check(TokenType.WHERE):
+                self._advance()
+                condition = self._parse_condition()
+                if condition.kind != "group":
+                    raise ParseError("SHOW GROUPS requires WHERE group = \"...\"")
+                pattern = condition.pattern
+            self._expect(TokenType.EOF)
+            return ShowGroupsQuery(pattern=pattern)
+        t = self._peek()
+        raise ParseError(f"Expected HOSTS or GROUPS after SHOW, got {t.value!r} at position {t.pos}")
 
     # ── condition ─────────────────────────────────────────────────────────────
 

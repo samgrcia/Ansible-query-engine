@@ -12,8 +12,10 @@ class TokenType(Enum):
     CREATE = auto()
     REMOVE = auto()
     DROP = auto()
+    SHOW = auto()
     # Structural keywords
     HOST = auto()
+    HOSTS = auto()
     GROUP = auto()    # used in WHERE group = "..."
     IN = auto()
     GROUPS = auto()
@@ -44,7 +46,9 @@ _KEYWORDS: dict[str, TokenType] = {
     "create":    TokenType.CREATE,
     "remove":    TokenType.REMOVE,
     "drop":      TokenType.DROP,
+    "show":      TokenType.SHOW,
     "host":      TokenType.HOST,
+    "hosts":     TokenType.HOSTS,
     "group":     TokenType.GROUP,
     "in":        TokenType.IN,
     "groups":    TokenType.GROUPS,

@@ -15,6 +15,8 @@ from ansible_query.parser.ast import (
     RemoveHostQuery,
     SelectQuery,
     SetQuery,
+    ShowGroupsQuery,
+    ShowHostsQuery,
     UnsetQuery,
 )
 from ansible_query.parser.parser import parse
@@ -47,6 +49,10 @@ class QueryEngine:
             return self._handle_remove_host(ast)
         if isinstance(ast, DropHostQuery):
             return self._handle_drop_host(ast)
+        if isinstance(ast, ShowHostsQuery):
+            return self._handle_show_hosts(ast)
+        if isinstance(ast, ShowGroupsQuery):
+            return self._handle_show_groups(ast)
         raise QueryError(f"Unknown query type: {type(ast).__name__}")  # pragma: no cover
 
     def execute_bulk(self, queries: list[str]) -> None:
@@ -368,6 +374,22 @@ class QueryEngine:
                 del data[q.variable]
                 buf.stage_file(path, data)
                 source_keys.add(f"groupvars/{group}")
+
+    # ── SHOW HOSTS / SHOW GROUPS ──────────────────────────────────────────────
+
+    def _handle_show_hosts(self, q: ShowHostsQuery) -> dict[str, list[str]]:
+        hosts = self._state.match_hosts(q.pattern)
+        return {host: self._resolved.host_group_chain[host] for host in hosts}
+
+    def _handle_show_groups(self, q: ShowGroupsQuery) -> dict[str, list[str]]:
+        groups = self._match_groups(q.pattern)
+        return {
+            group: sorted(
+                host for host in self._resolved.hosts
+                if group in self._resolved.host_group_chain[host]
+            )
+            for group in groups
+        }
 
     # ── public query helpers ──────────────────────────────────────────────────
 

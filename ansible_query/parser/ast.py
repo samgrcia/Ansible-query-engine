@@ -48,7 +48,18 @@ class DropHostQuery:
     keep_vars: bool
 
 
+@dataclass
+class ShowHostsQuery:
+    pattern: str   # fnmatch pattern; "*" means all hosts
+
+
+@dataclass
+class ShowGroupsQuery:
+    pattern: str   # fnmatch pattern; "*" means all groups
+
+
 Query = (
     SelectQuery | SetQuery | UnsetQuery
     | CreateHostQuery | RemoveHostQuery | DropHostQuery
+    | ShowHostsQuery | ShowGroupsQuery
 )

@@ -7,6 +7,8 @@ from ansible_query.parser.ast import (
     RemoveHostQuery,
     SelectQuery,
     SetQuery,
+    ShowGroupsQuery,
+    ShowHostsQuery,
     UnsetQuery,
 )
 from ansible_query.parser.lexer import LexError, TokenType, tokenize
@@ -248,3 +250,51 @@ def test_trailing_tokens_raises() -> None:
 def test_empty_input_raises() -> None:
     with pytest.raises(ParseError):
         parse("")
+
+
+# ── SHOW HOSTS ────────────────────────────────────────────────────────────────
+
+def test_show_hosts_no_filter() -> None:
+    q = parse("SHOW HOSTS")
+    assert isinstance(q, ShowHostsQuery)
+    assert q.pattern == "*"
+
+
+def test_show_hosts_with_filter() -> None:
+    q = parse('SHOW HOSTS WHERE host = "node*"')
+    assert isinstance(q, ShowHostsQuery)
+    assert q.pattern == "node*"
+
+
+def test_show_hosts_case_insensitive() -> None:
+    q = parse("show hosts")
+    assert isinstance(q, ShowHostsQuery)
+
+
+def test_show_hosts_wrong_condition_raises() -> None:
+    with pytest.raises(ParseError):
+        parse('SHOW HOSTS WHERE group = "webservers"')
+
+
+# ── SHOW GROUPS ───────────────────────────────────────────────────────────────
+
+def test_show_groups_no_filter() -> None:
+    q = parse("SHOW GROUPS")
+    assert isinstance(q, ShowGroupsQuery)
+    assert q.pattern == "*"
+
+
+def test_show_groups_with_filter() -> None:
+    q = parse('SHOW GROUPS WHERE group = "web*"')
+    assert isinstance(q, ShowGroupsQuery)
+    assert q.pattern == "web*"
+
+
+def test_show_groups_wrong_condition_raises() -> None:
+    with pytest.raises(ParseError):
+        parse('SHOW GROUPS WHERE host = "node1"')
+
+
+def test_show_unknown_target_raises() -> None:
+    with pytest.raises(ParseError, match="HOSTS or GROUPS"):
+        parse("SHOW VARIABLES")

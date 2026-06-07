@@ -14,9 +14,13 @@ from ansible_query.parser.ast import (
     RemoveHostQuery,
     SelectQuery,
     SetQuery,
+    ShowGroupsQuery,
+    ShowHostsQuery,
     UnsetQuery,
 )
 from ansible_query.parser.parser import ParseError, parse
+
+_READ_ONLY = (SelectQuery, ShowHostsQuery, ShowGroupsQuery)
 
 
 @click.command()
@@ -59,7 +63,7 @@ def cli(query: str, inventory: str, output: str, dry_run: bool) -> None:
         click.echo(f"Error loading inventory: {e}", err=True)
         sys.exit(1)
 
-    if dry_run and not isinstance(ast, SelectQuery):
+    if dry_run and not isinstance(ast, _READ_ONLY):
         _dry_run(ast, engine, inv_path)
         return
 
@@ -69,7 +73,7 @@ def cli(query: str, inventory: str, output: str, dry_run: bool) -> None:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    if isinstance(ast, SelectQuery):
+    if isinstance(ast, _READ_ONLY):
         _print_result(result, output)
     else:
         click.echo("Done.")
@@ -161,8 +165,12 @@ def _print_table(data: Any) -> None:
         return
 
     first_val = next(iter(data.values()))
-    if isinstance(first_val, dict):
-        # Multi-entity: rows = hosts/groups, columns = variable names
+    if isinstance(first_val, list):
+        # SHOW HOSTS / SHOW GROUPS: entity → list of members
+        headers = ["", "MEMBERS"]
+        rows = [[str(k), ", ".join(str(x) for x in v)] for k, v in data.items()]
+    elif isinstance(first_val, dict):
+        # Multi-entity SELECT: rows = hosts/groups, columns = variable names
         entities = list(data.keys())
         col_keys: list[str] = []
         seen: set[str] = set()

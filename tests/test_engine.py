@@ -293,3 +293,84 @@ def test_bulk_structural_command_raises(engine: QueryEngine) -> None:
 def test_bulk_select_raises(engine: QueryEngine) -> None:
     with pytest.raises(QueryError, match="SELECT"):
         engine.execute_bulk(['SELECT * FROM hostvars WHERE host = "node1"'])
+
+
+# ── SHOW HOSTS ────────────────────────────────────────────────────────────────
+
+def test_show_hosts_returns_all(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW HOSTS")
+    assert isinstance(result, dict)
+    assert "node1" in result
+    assert "standalone" in result
+    assert "mon01" in result
+
+
+def test_show_hosts_chain_content(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW HOSTS")
+    # node1 is in webservers (child of app_servers) and europe
+    assert "all" in result["node1"]
+    assert "webservers" in result["node1"]
+    assert "europe" in result["node1"]
+    assert "app_servers" in result["node1"]
+
+
+def test_show_hosts_wildcard_filter(engine: QueryEngine) -> None:
+    result = engine.execute('SHOW HOSTS WHERE host = "node*"')
+    assert "node1" in result
+    assert "node4" in result
+    assert "standalone" not in result
+    assert "mon01" not in result
+
+
+def test_show_hosts_no_match_returns_empty(engine: QueryEngine) -> None:
+    result = engine.execute('SHOW HOSTS WHERE host = "ghost*"')
+    assert result == {}
+
+
+# ── SHOW GROUPS ───────────────────────────────────────────────────────────────
+
+def test_show_groups_returns_all(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW GROUPS")
+    assert isinstance(result, dict)
+    assert "webservers" in result
+    assert "dbservers" in result
+    assert "all" in result
+
+
+def test_show_groups_direct_members(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW GROUPS")
+    assert "node1" in result["webservers"]
+    assert "node2" in result["webservers"]
+    assert "node3" in result["webservers"]
+    assert "node4" not in result["webservers"]
+
+
+def test_show_groups_transitive_members(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW GROUPS")
+    # app_servers has no direct hosts but covers webservers + dbservers members
+    assert "node1" in result["app_servers"]
+    assert "node4" in result["app_servers"]
+    assert "standalone" not in result["app_servers"]
+
+
+def test_show_groups_all_covers_everyone(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW GROUPS")
+    all_members = set(result["all"])
+    assert "node1" in all_members
+    assert "standalone" in all_members
+    assert "mon01" in all_members
+
+
+def test_show_groups_wildcard_filter(engine: QueryEngine) -> None:
+    result = engine.execute('SHOW GROUPS WHERE group = "*servers"')
+    assert "webservers" in result
+    assert "dbservers" in result
+    assert "app_servers" in result
+    assert "europe" not in result
+    assert "monitoring" not in result
+
+
+def test_show_groups_members_are_sorted(engine: QueryEngine) -> None:
+    result = engine.execute("SHOW GROUPS")
+    members = result["webservers"]
+    assert members == sorted(members)
