@@ -60,24 +60,27 @@ class QueryEngine:
         asts: list[Query] = []
         for q in queries:
             ast = parse(q)
-            if isinstance(ast, (CreateHostQuery, RemoveHostQuery, DropHostQuery)):
-                raise QueryError(
-                    f"{type(ast).__name__} is not supported in bulk mode"
-                )
-            if isinstance(ast, SelectQuery):
+            if isinstance(ast, (RemoveHostQuery, DropHostQuery)):
+                raise QueryError(f"{type(ast).__name__} is not supported in bulk mode")
+            if isinstance(ast, (SelectQuery, ShowHostsQuery, ShowGroupsQuery)):
                 raise QueryError("SELECT is not supported in bulk mode")
             asts.append(ast)
 
         buf = BulkBuffer()
         source_keys: set[str] = set()
+        pending_new_hosts: set[str] = set()
+        has_structural = False
 
         try:
             for ast in asts:
-                if isinstance(ast, SetQuery):
-                    self._bulk_set(ast, buf, source_keys)
+                if isinstance(ast, CreateHostQuery):
+                    self._bulk_create_host(ast, buf, pending_new_hosts)
+                    has_structural = True
+                elif isinstance(ast, SetQuery):
+                    self._bulk_set(ast, buf, source_keys, pending_new_hosts)
                 else:
                     assert isinstance(ast, UnsetQuery)
-                    self._bulk_unset(ast, buf, source_keys)
+                    self._bulk_unset(ast, buf, source_keys, pending_new_hosts)
         except Exception:
             buf.clear()
             raise
@@ -86,7 +89,10 @@ class QueryEngine:
             return
 
         self._store.flush_bulk(buf.pending_files)
-        self._compiler.recompile_many(source_keys, self._state)
+        if has_structural:
+            self._reload()
+        else:
+            self._compiler.recompile_many(source_keys, self._state)
 
     # ── SELECT ────────────────────────────────────────────────────────────────
 
@@ -292,10 +298,34 @@ class QueryEngine:
 
     # ── bulk helpers ──────────────────────────────────────────────────────────
 
-    def _bulk_set(self, q: SetQuery, buf: BulkBuffer, source_keys: set[str]) -> None:
+    def _bulk_create_host(self, q: CreateHostQuery, buf: BulkBuffer, pending_new_hosts: set[str]) -> None:
+        if q.host in self._state or q.host in pending_new_hosts:
+            raise QueryError(f"Host {q.host!r} already exists")
+        nodes_path = self._path / "nodes.yaml"
+        staged = buf.get_staged(nodes_path)
+        nodes = staged if staged is not None else self._store.load_yaml_raw(nodes_path)
+        target_groups = q.groups if q.groups else ["ungrouped"]
+        for group in target_groups:
+            group_raw = nodes.get(group)
+            if group_raw is None:
+                nodes[group] = {"hosts": {q.host: None}}
+            else:
+                hosts_section = group_raw.get("hosts")
+                if hosts_section is None:
+                    group_raw["hosts"] = {q.host: None}
+                else:
+                    hosts_section[q.host] = None
+        buf.stage_file(nodes_path, nodes)
+        pending_new_hosts.add(q.host)
+
+    def _bulk_set(
+        self, q: SetQuery, buf: BulkBuffer, source_keys: set[str], pending_new_hosts: set[str]
+    ) -> None:
         _check_vault_prefix(q.variable, q.encrypt)
         if q.condition.kind == "host":
-            hosts = self._state.match_hosts(q.condition.pattern)
+            existing = self._state.match_hosts(q.condition.pattern)
+            new_matches = sorted(h for h in pending_new_hosts if fnmatch.fnmatch(h, q.condition.pattern))
+            hosts = existing + new_matches
             if not hosts:
                 raise QueryError(f"No hosts matched: {q.condition.pattern!r}")
             for host in hosts:
@@ -331,7 +361,9 @@ class QueryEngine:
                 buf.stage_file(path, data)
                 source_keys.add(f"groupvars/{group}")
 
-    def _bulk_unset(self, q: UnsetQuery, buf: BulkBuffer, source_keys: set[str]) -> None:
+    def _bulk_unset(
+        self, q: UnsetQuery, buf: BulkBuffer, source_keys: set[str], pending_new_hosts: set[str]
+    ) -> None:
         if q.condition.kind == "host":
             hosts = self._state.match_hosts(q.condition.pattern)
             if not hosts:

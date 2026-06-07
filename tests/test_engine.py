@@ -285,14 +285,74 @@ def test_bulk_set_and_unset(engine: QueryEngine) -> None:
     assert "tmp_var" not in hostvars
 
 
-def test_bulk_structural_command_raises(engine: QueryEngine) -> None:
+def test_bulk_remove_host_raises(engine: QueryEngine) -> None:
     with pytest.raises(QueryError):
-        engine.execute_bulk(["CREATE HOST newhost"])
+        engine.execute_bulk(["REMOVE HOST node1 FROM GROUPS webservers"])
+
+
+def test_bulk_drop_host_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError):
+        engine.execute_bulk(["DROP HOST node1"])
 
 
 def test_bulk_select_raises(engine: QueryEngine) -> None:
     with pytest.raises(QueryError, match="SELECT"):
         engine.execute_bulk(['SELECT * FROM hostvars WHERE host = "node1"'])
+
+
+# ── execute_bulk CREATE HOST ──────────────────────────────────────────────────
+
+def test_bulk_create_hosts_writes_nodes_once(engine: QueryEngine, fresh_inv: Path) -> None:
+    engine.execute_bulk([
+        "CREATE HOST bulk1 IN GROUPS webservers",
+        "CREATE HOST bulk2 IN GROUPS webservers",
+        "CREATE HOST bulk3 IN GROUPS webservers",
+    ])
+    yaml = YAML()
+    with (fresh_inv / "nodes.yaml").open() as f:
+        nodes = yaml.load(f)
+    assert "bulk1" in nodes["webservers"]["hosts"]
+    assert "bulk2" in nodes["webservers"]["hosts"]
+    assert "bulk3" in nodes["webservers"]["hosts"]
+
+
+def test_bulk_create_host_visible_after_bulk(engine: QueryEngine) -> None:
+    engine.execute_bulk(["CREATE HOST newbulk IN GROUPS webservers"])
+    result = engine.execute('SELECT * FROM hostvars, groupvars WHERE host = "newbulk"')
+    assert result.get("http_port") == 80
+
+
+def test_bulk_create_host_duplicate_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError, match="already exists"):
+        engine.execute_bulk([
+            "CREATE HOST dup IN GROUPS webservers",
+            "CREATE HOST dup IN GROUPS webservers",
+        ])
+
+
+def test_bulk_create_host_existing_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError, match="already exists"):
+        engine.execute_bulk(["CREATE HOST node1 IN GROUPS webservers"])
+
+
+def test_bulk_create_then_set_in_same_bulk(engine: QueryEngine) -> None:
+    engine.execute_bulk([
+        "CREATE HOST freshhost IN GROUPS webservers",
+        'SET env = "staging" WHERE host = "freshhost"',
+    ])
+    assert engine.execute('SELECT env FROM hostvars WHERE host = "freshhost"') == "staging"
+    compiled = engine.execute('SELECT * FROM hostvars, groupvars WHERE host = "freshhost"')
+    assert compiled.get("http_port") == 80
+
+
+def test_bulk_create_rollback_on_error(engine: QueryEngine, fresh_inv: Path) -> None:
+    nodes_original = (fresh_inv / "nodes.yaml").read_text()
+    with pytest.raises(QueryError):
+        engine.execute_bulk([
+            "CREATE HOST ok_host IN GROUPS webservers",
+            "CREATE HOST node1 IN GROUPS webservers",  # already exists → error
+        ])
+    assert (fresh_inv / "nodes.yaml").read_text() == nodes_original
 
 
 # ── SHOW HOSTS ────────────────────────────────────────────────────────────────
