@@ -9,6 +9,7 @@ from ansible_query.inventory.resolver import ResolvedInventory, Resolver
 from ansible_query.inventory.state import InventoryState
 from ansible_query.inventory.store import Store
 from ansible_query.parser.ast import (
+    AddHostQuery,
     CreateHostQuery,
     DropHostQuery,
     Query,
@@ -45,6 +46,8 @@ class QueryEngine:
             return self._handle_unset(ast)
         if isinstance(ast, CreateHostQuery):
             return self._handle_create_host(ast)
+        if isinstance(ast, AddHostQuery):
+            return self._handle_add_host(ast)
         if isinstance(ast, RemoveHostQuery):
             return self._handle_remove_host(ast)
         if isinstance(ast, DropHostQuery):
@@ -60,7 +63,7 @@ class QueryEngine:
         asts: list[Query] = []
         for q in queries:
             ast = parse(q)
-            if isinstance(ast, (RemoveHostQuery, DropHostQuery)):
+            if isinstance(ast, (AddHostQuery, RemoveHostQuery, DropHostQuery)):
                 raise QueryError(f"{type(ast).__name__} is not supported in bulk mode")
             if isinstance(ast, (SelectQuery, ShowHostsQuery, ShowGroupsQuery)):
                 raise QueryError("SELECT is not supported in bulk mode")
@@ -254,6 +257,27 @@ class QueryEngine:
                     group_raw["hosts"] = {q.host: None}
                 else:
                     hosts_section[q.host] = None
+        self._store.write_yaml(nodes_path, nodes)
+        self._reload()
+
+    # ── ADD HOST TO GROUPS ────────────────────────────────────────────────────
+
+    def _handle_add_host(self, q: AddHostQuery) -> None:
+        if q.host not in self._state:
+            raise QueryError(f"Host {q.host!r} does not exist")
+        nodes_path = self._path / "nodes.yaml"
+        nodes = self._store.load_yaml_raw(nodes_path)
+        for group in q.groups:
+            group_raw = nodes.get(group)
+            if group_raw is None:
+                raise QueryError(f"Group {group!r} not found in nodes.yaml")
+            # Use resolved membership (handles range-expanded hosts)
+            if q.host in (self._resolved.group_hosts.get(group) or []):
+                raise QueryError(f"Host {q.host!r} is already in group {group!r}")
+            if group_raw.get("hosts") is None:
+                group_raw["hosts"] = {q.host: None}
+            else:
+                group_raw["hosts"][q.host] = None
         self._store.write_yaml(nodes_path, nodes)
         self._reload()
 

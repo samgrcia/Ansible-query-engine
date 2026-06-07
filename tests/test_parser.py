@@ -1,6 +1,7 @@
 import pytest
 
 from ansible_query.parser.ast import (
+    AddHostQuery,
     Condition,
     CreateHostQuery,
     DropHostQuery,
@@ -183,6 +184,26 @@ def test_create_host_hyphenated_name() -> None:
     q = parse("CREATE HOST web-server-01 IN GROUPS webservers")
     assert isinstance(q, CreateHostQuery)
     assert q.host == "web-server-01"
+
+
+# ── ADD HOST ──────────────────────────────────────────────────────────────────
+
+def test_add_host_single_group() -> None:
+    q = parse("ADD HOST node1 TO GROUPS europe")
+    assert isinstance(q, AddHostQuery)
+    assert q.host == "node1"
+    assert q.groups == ["europe"]
+
+
+def test_add_host_multiple_groups() -> None:
+    q = parse("ADD HOST node1 TO GROUPS europe, monitoring")
+    assert isinstance(q, AddHostQuery)
+    assert q.groups == ["europe", "monitoring"]
+
+
+def test_add_host_missing_to_raises() -> None:
+    with pytest.raises(ParseError):
+        parse("ADD HOST node1 GROUPS europe")
 
 
 # ── REMOVE HOST ───────────────────────────────────────────────────────────────

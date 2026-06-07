@@ -10,6 +10,7 @@ class TokenType(Enum):
     SET = auto()
     UNSET = auto()
     CREATE = auto()
+    ADD = auto()
     REMOVE = auto()
     DROP = auto()
     SHOW = auto()
@@ -18,6 +19,7 @@ class TokenType(Enum):
     HOSTS = auto()
     GROUP = auto()    # used in WHERE group = "..."
     IN = auto()
+    TO = auto()
     GROUPS = auto()
     KEEP = auto()
     VARS = auto()
@@ -44,6 +46,7 @@ _KEYWORDS: dict[str, TokenType] = {
     "set":       TokenType.SET,
     "unset":     TokenType.UNSET,
     "create":    TokenType.CREATE,
+    "add":       TokenType.ADD,
     "remove":    TokenType.REMOVE,
     "drop":      TokenType.DROP,
     "show":      TokenType.SHOW,
@@ -51,6 +54,7 @@ _KEYWORDS: dict[str, TokenType] = {
     "hosts":     TokenType.HOSTS,
     "group":     TokenType.GROUP,
     "in":        TokenType.IN,
+    "to":        TokenType.TO,
     "groups":    TokenType.GROUPS,
     "keep":      TokenType.KEEP,
     "vars":      TokenType.VARS,

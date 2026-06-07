@@ -43,6 +43,12 @@ class RemoveHostQuery:
 
 
 @dataclass
+class AddHostQuery:
+    host: str
+    groups: list[str]
+
+
+@dataclass
 class DropHostQuery:
     host: str
     keep_vars: bool
@@ -60,6 +66,6 @@ class ShowGroupsQuery:
 
 Query = (
     SelectQuery | SetQuery | UnsetQuery
-    | CreateHostQuery | RemoveHostQuery | DropHostQuery
+    | CreateHostQuery | AddHostQuery | RemoveHostQuery | DropHostQuery
     | ShowHostsQuery | ShowGroupsQuery
 )

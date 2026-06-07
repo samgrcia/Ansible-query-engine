@@ -189,4 +189,5 @@ engine.execute_bulk([
 ## Known limitations
 
 - `REMOVE HOST` and `DROP HOST` only work for hosts listed by their exact name in `nodes.yaml`. Hosts included via a range pattern (e.g. `node[1:3]`) must be removed manually.
-- `execute_bulk` does not support structural commands (`CREATE HOST`, `REMOVE HOST`, `DROP HOST`).
+- `execute_bulk` does not support `REMOVE HOST` or `DROP HOST`.
+- `CREATE HOST` is supported in `execute_bulk` and is the recommended way to create many hosts at once (all entries are written to `nodes.yaml` in a single atomic pass).

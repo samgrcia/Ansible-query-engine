@@ -199,6 +199,36 @@ def test_create_host_already_exists_raises(engine: QueryEngine) -> None:
         engine.execute("CREATE HOST node1")
 
 
+# ── ADD HOST TO GROUPS ────────────────────────────────────────────────────────
+
+def test_add_host_to_group(engine: QueryEngine) -> None:
+    engine.execute("ADD HOST standalone TO GROUPS webservers")
+    result = engine.execute('SELECT * FROM hostvars, groupvars WHERE host = "standalone"')
+    assert result.get("http_port") == 80
+
+
+def test_add_host_to_multiple_groups(engine: QueryEngine) -> None:
+    engine.execute("ADD HOST standalone TO GROUPS webservers, europe")
+    result = engine.execute('SELECT * FROM hostvars, groupvars WHERE host = "standalone"')
+    assert result.get("http_port") == 80
+    assert result.get("datacenter") == "eu-west-1"
+
+
+def test_add_host_not_exists_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError, match="does not exist"):
+        engine.execute("ADD HOST ghost TO GROUPS webservers")
+
+
+def test_add_host_group_not_found_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError, match="not found"):
+        engine.execute("ADD HOST standalone TO GROUPS no_such_group")
+
+
+def test_add_host_already_in_group_raises(engine: QueryEngine) -> None:
+    with pytest.raises(QueryError, match="already in group"):
+        engine.execute("ADD HOST node1 TO GROUPS webservers")
+
+
 # ── REMOVE HOST ───────────────────────────────────────────────────────────────
 
 def test_remove_host_from_group(engine: QueryEngine) -> None:

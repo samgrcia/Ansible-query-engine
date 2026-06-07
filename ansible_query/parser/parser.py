@@ -1,4 +1,5 @@
 from ansible_query.parser.ast import (
+    AddHostQuery,
     Condition,
     CreateHostQuery,
     DropHostQuery,
@@ -63,6 +64,8 @@ class _Parser:
             return self._parse_unset()
         if t.type == TokenType.CREATE:
             return self._parse_create()
+        if t.type == TokenType.ADD:
+            return self._parse_add()
         if t.type == TokenType.REMOVE:
             return self._parse_remove()
         if t.type == TokenType.DROP:
@@ -150,6 +153,21 @@ class _Parser:
 
         self._expect(TokenType.EOF)
         return CreateHostQuery(host=host, groups=groups)
+
+    # ── ADD HOST ──────────────────────────────────────────────────────────────
+
+    def _parse_add(self) -> AddHostQuery:
+        self._expect(TokenType.ADD)
+        self._expect(TokenType.HOST)
+        host = self._expect_identifier()
+        self._expect(TokenType.TO)
+        self._expect(TokenType.GROUPS)
+        groups = [self._expect_identifier()]
+        while self._check(TokenType.COMMA):
+            self._advance()
+            groups.append(self._expect_identifier())
+        self._expect(TokenType.EOF)
+        return AddHostQuery(host=host, groups=groups)
 
     # ── REMOVE HOST ───────────────────────────────────────────────────────────
 
