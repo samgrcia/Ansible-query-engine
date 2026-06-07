@@ -1,0 +1,3 @@
+env: development
+ntp_server: ntp.example.com
+monitoring: true

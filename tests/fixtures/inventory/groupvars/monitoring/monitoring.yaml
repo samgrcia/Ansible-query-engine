@@ -1,0 +1,2 @@
+check_interval: 60
+alert_email: ops@example.com

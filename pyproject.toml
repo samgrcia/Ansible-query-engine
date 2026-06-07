@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ansible-query"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ruamel.yaml>=0.18",
+    "ansible-vault>=2.1",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "mypy>=1.8",
+    "ruff>=0.3",
+]
+
+[project.scripts]
+ansible-query = "ansible_query.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ansible_query*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
